@@ -381,6 +381,7 @@ function renderMyList() {
           <div class="tier-song-title">${s.title}</div>
           <div class="tier-song-artist">${s.artist}</div>
         </div>
+        <button class="song-menu-btn" onclick="openSongMenu(event, '${s.id}')" title="Edit">&#8942;</button>
       </div>
     `).join('');
   });
@@ -454,4 +455,99 @@ function updateFriendsPage() {
   if (profileBtn) {
     profileBtn.classList.toggle('hidden', !connected);
   }
+}
+
+// ── SONG EDIT MENU ──
+function openSongMenu(event, songId) {
+  event.stopPropagation();
+
+  // Close any existing menu
+  closeSongMenu();
+
+  const song = state.songs.find(s => s.id === songId);
+  if (!song) return;
+
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+
+  const menu = document.createElement('div');
+  menu.className = 'song-menu';
+  menu.id = 'song-menu';
+
+  const otherTiers = ['liked', 'ok', 'disliked'].filter(t => t !== song.tier);
+  const tierLabels = { liked: '🔥 Move to Liked', ok: '👍 Move to OK', disliked: '👎 Move to Not for Me' };
+
+  menu.innerHTML = `
+    <div class="song-menu-header">
+      <div class="song-menu-title">${song.title}</div>
+      <div class="song-menu-artist">${song.artist}</div>
+    </div>
+    ${otherTiers.map(t => `
+      <button class="song-menu-item" onclick="moveSong('${songId}', '${t}')">
+        ${tierLabels[t]}
+      </button>
+    `).join('')}
+    <button class="song-menu-item re-rank" onclick="reRankSong('${songId}')">
+      🔀 Re-rank in tier
+    </button>
+    <button class="song-menu-item delete" onclick="deleteSong('${songId}')">
+      🗑 Remove from list
+    </button>
+  `;
+
+  // Position menu near the button
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 8) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', closeSongMenu, { once: true });
+  }, 10);
+}
+
+function closeSongMenu() {
+  const menu = document.getElementById('song-menu');
+  if (menu) menu.remove();
+}
+
+function moveSong(songId, newTier) {
+  const song = state.songs.find(s => s.id === songId);
+  if (!song) return;
+  song.tier = newTier;
+  song.elo = 1000; // reset ELO in new tier
+  saveState();
+  closeSongMenu();
+  renderMyList();
+  showToast(`Moved to ${newTier === 'liked' ? '🔥 Liked' : newTier === 'ok' ? '👍 OK' : '👎 Not for Me'}`);
+}
+
+function deleteSong(songId) {
+  const song = state.songs.find(s => s.id === songId);
+  if (!song) return;
+  if (!confirm(`Remove "${song.title}" from your list?`)) return;
+  state.songs = state.songs.filter(s => s.id !== songId);
+  saveState();
+  closeSongMenu();
+  renderMyList();
+  renderRecent();
+  showToast('Song removed from your list');
+}
+
+function reRankSong(songId) {
+  const song = state.songs.find(s => s.id === songId);
+  if (!song) return;
+  closeSongMenu();
+
+  const tierSongs = state.songs.filter(s => s.id !== songId && s.tier === song.tier);
+  if (!tierSongs.length) {
+    showToast('No other songs in this tier to compare with');
+    return;
+  }
+
+  const shuffled = tierSongs.sort(() => Math.random() - 0.5).slice(0, 3);
+  state.compareQueue = shuffled.map(s => ({ a: song, b: s }));
+  nextCompare();
 }
