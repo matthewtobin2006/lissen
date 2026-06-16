@@ -3,7 +3,7 @@
 // 1. Go to https://developer.spotify.com/dashboard
 // 2. Create an app, add http://localhost:8080 (or your GitHub Pages URL) as a redirect URI
 // 3. Replace CLIENT_ID below with your actual client ID
-const SPOTIFY_CLIENT_ID = 'YOUR_SPOTIFY_CLIENT_ID';
+const SPOTIFY_CLIENT_ID = '80710d5293e84e45acb1a216080039fc';
 const REDIRECT_URI = window.location.origin + window.location.pathname;
 const SCOPES = 'user-read-private user-read-email';
 
