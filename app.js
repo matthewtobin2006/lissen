@@ -34,6 +34,7 @@ function showPage(page) {
 
   if (page === 'mylist') renderMyList();
   if (page === 'home') renderRecent();
+  if (page === 'friends') updateFriendsPage();
 }
 
 // ── SPOTIFY PKCE AUTH ──
@@ -443,3 +444,14 @@ function showToast(msg) {
 // ── INIT ──
 initAuth();
 renderRecent();
+
+// ── FRIENDS PAGE STATE ──
+function updateFriendsPage() {
+  const connected = !!state.spotifyToken;
+  document.getElementById('friends-connect').classList.toggle('hidden', connected);
+  document.getElementById('friends-connected').classList.toggle('hidden', !connected);
+  const profileBtn = document.getElementById('nav-profile-btn');
+  if (profileBtn) {
+    profileBtn.classList.toggle('hidden', !connected);
+  }
+}
