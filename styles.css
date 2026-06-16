@@ -805,3 +805,17 @@ a { text-decoration: none; color: inherit; }
 .song-menu-item.delete { color: #e57373; }
 .song-menu-item.delete:hover { background: rgba(229, 115, 115, 0.1); }
 .song-menu-item.re-rank { color: var(--coral); }
+
+/* ── SONG SCORE ── */
+.tier-song-score {
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: right;
+  letter-spacing: -0.5px;
+}
+
+.score-liked    { color: #E8574A; }
+.score-ok       { color: #F5A623; }
+.score-disliked { color: #7A8FA6; }
