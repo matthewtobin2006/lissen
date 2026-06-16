@@ -696,3 +696,41 @@ a { text-decoration: none; color: inherit; }
   .compare-songs { gap: 12px; }
   .compare-art { width: 64px; height: 64px; }
 }
+
+/* ── FRIENDS PAGE UPDATES ── */
+.friends-perks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 8px 0 24px;
+  text-align: left;
+  width: 100%;
+  max-width: 280px;
+}
+
+.perk {
+  font-size: 14px;
+  color: var(--off-white);
+  font-weight: 500;
+}
+
+.friends-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+
+.btn-profile {
+  padding: 8px 18px;
+  background: var(--navy-light);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all var(--transition);
+}
+
+.btn-profile:hover { background: var(--coral); border-color: var(--coral); }
