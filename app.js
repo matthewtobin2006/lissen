@@ -146,32 +146,22 @@ function handleSearch(query) {
 }
 
 async function searchTracks(query) {
-  if (state.spotifyToken) {
-    return await spotifySearch(query);
-  }
-  return mockSearch(query);
+  return await itunesSearch(query);
 }
 
-async function spotifySearch(query) {
+async function itunesSearch(query) {
   try {
-    const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=8`, {
-      headers: { 'Authorization': 'Bearer ' + state.spotifyToken }
-    });
-    if (res.status === 401) {
-      state.spotifyToken = null;
-      localStorage.removeItem('lissen_token');
-      return mockSearch(query);
-    }
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=10`);
     const data = await res.json();
-    return data.tracks.items.map(t => ({
-      id: t.id,
-      title: t.name,
-      artist: t.artists.map(a => a.name).join(', '),
-      album: t.album.name,
-      art: t.album.images[1]?.url || t.album.images[0]?.url || '',
-      duration: msToTime(t.duration_ms),
-      spotifyUrl: t.external_urls.spotify,
-      preview: t.preview_url,
+    if (!data.results || !data.results.length) return mockSearch(query);
+    return data.results.map(t => ({
+      id: String(t.trackId),
+      title: t.trackName,
+      artist: t.artistName,
+      album: t.collectionName || '',
+      art: (t.artworkUrl100 || '').replace('100x100bb', '300x300bb'),
+      duration: msToTime(t.trackTimeMillis || 0),
+      preview: t.previewUrl || null,
     }));
   } catch(e) {
     return mockSearch(query);
