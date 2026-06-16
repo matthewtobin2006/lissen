@@ -330,6 +330,19 @@ function updateElo(winnerId, loserId) {
   saveState();
 }
 
+// ── SCORE CALCULATION ──
+function calcScore(song, tierSongs) {
+  const ranges = { liked: [7.0, 10.0], ok: [4.0, 6.9], disliked: [1.0, 3.9] };
+  const [min, max] = ranges[song.tier] || [1, 10];
+  if (tierSongs.length <= 1) return ((min + max) / 2).toFixed(1);
+  const elos = tierSongs.map(s => s.elo);
+  const minElo = Math.min(...elos);
+  const maxElo = Math.max(...elos);
+  if (maxElo === minElo) return ((min + max) / 2).toFixed(1);
+  const normalized = (song.elo - minElo) / (maxElo - minElo);
+  return (min + normalized * (max - min)).toFixed(1);
+}
+
 // ── RENDER RECENT ──
 function renderRecent() {
   const el = document.getElementById('recent-list');
@@ -381,6 +394,7 @@ function renderMyList() {
           <div class="tier-song-title">${s.title}</div>
           <div class="tier-song-artist">${s.artist}</div>
         </div>
+        <span class="tier-song-score score-${s.tier}">${calcScore(s, songs)}</span>
         <button class="song-menu-btn" onclick="openSongMenu(event, '${s.id}')" title="Edit">&#8942;</button>
       </div>
     `).join('');
