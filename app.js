@@ -255,13 +255,19 @@ function rateSong(tier) {
 
   document.getElementById('rate-modal').classList.add('hidden');
 
-  // Queue comparisons with existing songs in same tier
-  const tierSongs = state.songs.filter(s => s.id !== song.id && s.tier === tier);
+  const tierSongs = state.songs
+    .filter(s => s.id !== song.id && s.tier === tier)
+    .sort((a, b) => b.elo - a.elo);
+
   if (tierSongs.length > 0) {
-    // Pick random songs to compare (max 3)
-    const shuffled = tierSongs.sort(() => Math.random() - 0.5).slice(0, 3);
-    state.compareQueue = shuffled.map(s => ({ a: song, b: s }));
-    nextCompare();
+    // Binary search insertion — find where this song belongs
+    state.binarySearch = {
+      newSong: song,
+      sorted: tierSongs,
+      lo: 0,
+      hi: tierSongs.length - 1,
+    };
+    runBinaryCompare();
   } else {
     showToast(`Added "${song.title}" to ${tierLabel(tier)}!`);
     renderRecent();
@@ -272,11 +278,40 @@ function tierLabel(tier) {
   return { liked: '🔥 Liked', ok: '👍 OK', disliked: '👎 Not for Me' }[tier] || tier;
 }
 
-// ── COMPARE FLOW ──
+// ── BINARY SEARCH COMPARE ──
+function runBinaryCompare() {
+  const { newSong, sorted, lo, hi } = state.binarySearch;
+
+  // Found the position — done
+  if (lo > hi) {
+    document.getElementById('compare-modal').classList.add('hidden');
+    showToast('Rankings updated!');
+    renderRecent();
+    renderMyList();
+    return;
+  }
+
+  const mid = Math.floor((lo + hi) / 2);
+  const opponent = sorted[mid];
+
+  document.getElementById('compare-art-a').src = newSong.art;
+  document.getElementById('compare-title-a').textContent = newSong.title;
+  document.getElementById('compare-artist-a').textContent = newSong.artist;
+
+  document.getElementById('compare-art-b').src = opponent.art;
+  document.getElementById('compare-title-b').textContent = opponent.title;
+  document.getElementById('compare-artist-b').textContent = opponent.artist;
+
+  document.getElementById('compare-modal').classList.remove('hidden');
+  state.currentPair = { a: newSong, b: opponent, mode: 'binary', mid };
+}
+
+// ── LEGACY COMPARE FLOW (used for re-rank) ──
 function nextCompare() {
   if (!state.compareQueue.length) {
     showToast('Rankings updated!');
     renderRecent();
+    renderMyList();
     return;
   }
 
@@ -291,20 +326,38 @@ function nextCompare() {
   document.getElementById('compare-artist-b').textContent = b.artist;
 
   document.getElementById('compare-modal').classList.remove('hidden');
-
-  // Store current pair for pickSong
-  state.currentPair = { a, b };
+  state.currentPair = { a, b, mode: 'elo' };
 }
 
 function pickSong(winner) {
-  const { a, b } = state.currentPair;
-  const winnerId = winner === 'a' ? a.id : b.id;
-  const loserId  = winner === 'a' ? b.id : a.id;
+  const { a, b, mode, mid } = state.currentPair;
 
-  updateElo(winnerId, loserId);
-  document.getElementById('compare-modal').classList.add('hidden');
+  if (mode === 'binary') {
+    const { newSong, sorted } = state.binarySearch;
+    document.getElementById('compare-modal').classList.add('hidden');
 
-  setTimeout(nextCompare, 200);
+    if (winner === 'a') {
+      // New song beats the mid — search upper half (higher ranked songs)
+      state.binarySearch.hi = mid - 1;
+      // Boost new song ELO above opponent
+      newSong.elo = Math.max(newSong.elo, sorted[mid].elo + 1);
+    } else {
+      // Opponent wins — search lower half
+      state.binarySearch.lo = mid + 1;
+      // Ensure new song ELO stays below opponent
+      newSong.elo = Math.min(newSong.elo, sorted[mid].elo - 1);
+    }
+
+    saveState();
+    setTimeout(runBinaryCompare, 200);
+  } else {
+    // Legacy ELO mode for re-rank
+    const winnerId = winner === 'a' ? a.id : b.id;
+    const loserId  = winner === 'a' ? b.id : a.id;
+    updateElo(winnerId, loserId);
+    document.getElementById('compare-modal').classList.add('hidden');
+    setTimeout(nextCompare, 200);
+  }
 }
 
 function skipCompare() {
